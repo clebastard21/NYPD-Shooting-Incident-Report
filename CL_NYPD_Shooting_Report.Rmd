@@ -1,0 +1,196 @@
+---
+title: 'CL Project W3: NYPD Shooting Incident Report'
+author: "Catherine Lebastard"
+date: "9/11/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## About the data
+List of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year.
+
+This is a breakdown of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year. This data is manually extracted every quarter and reviewed by the Office of Management Analysis and Planning before being posted on the NYPD website. Each record represents a shooting incident in NYC and includes information about the event, the location and time of occurrence. In addition, information related to suspect and victim demographics is also included. This data can be used by the public to explore the nature of shooting/criminal activity. Please refer to the attached data footnotes for additional information about this dataset.
+
+Data Source: https://catalog.data.gov/dataset 
+
+## Step 1 - Import the project dataset
+*Imports the shooting project dataset in a reproducible manner.*
+
+1. Install the library tidyverse or load it
+```{r load_data, error=FALSE, warning=FALSE, message=FALSE, results=FALSE, indent = "     "}
+if (!require(tidyverse)) install.packages("tidyverse");
+library(tidyverse)
+library(lubridate)
+```
+
+2. Read the NYPD dataset
+```{r read_data, indent = "     "}
+urlNYPD = "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD"
+shooting_NY <- read_csv(urlNYPD)
+```
+
+## Step 2 - Tidy and Transform your data
+*Add a summary of the data and clean up the dataset by changing appropriate variables to factor and data types and getting rid of any columns not needed.*
+```{r tidy_data}
+shooting_NY <- shooting_NY %>% 
+  mutate(OCCUR_DATE = mdy(OCCUR_DATE)) %>%
+  mutate(BORO = fct_recode(BORO)) %>%
+  mutate(PRECINCT = factor(PRECINCT)) %>%
+  mutate(JURISDICTION_CODE = factor(JURISDICTION_CODE)) %>%
+  mutate(PERP_AGE_GROUP = factor(PERP_AGE_GROUP)) %>%
+  mutate(PERP_SEX = fct_recode(PERP_SEX)) %>%
+  mutate(PERP_RACE = fct_recode(PERP_RACE)) %>%
+  mutate(VIC_AGE_GROUP = fct_recode(VIC_AGE_GROUP)) %>%
+  mutate(VIC_SEX = fct_recode(VIC_SEX)) %>%
+  mutate(VIC_RACE = fct_recode(VIC_RACE)) %>%
+  select(-c(X_COORD_CD, Y_COORD_CD, Lon_Lat))
+
+shooting_NY$PERP_RACE[shooting_NY$PERP_RACE == 'UNKNOWN'] <- NA
+summary(shooting_NY)
+```
+
+## Step 3 - Visualizations and Analysis
+*Add at least two different visualizations and some analysis*
+
+1. Question1: Which boroughs are more unsafe than others in NYC from 2006 to 2020?
+```{r echo=FALSE, indent = "     "}
+shooting_NY%>%ggplot(aes(x=OCCUR_DATE, y = ..count.., col = BORO)) +
+  geom_density() +
+  xlab("Date") + 
+  ylab("Count") +
+  theme_minimal() +
+  ggtitle("NYC SHOOTING EVENTS FROM 2006 TO 2020")
+```
+<br>
+With this visualization, we can answer that Brooklyn is the borough with the highest number of shootings over the years.
+
+2. Question 2: Which boroughs of New York has the most number of shootings? From those shootings, how many are murder cases?
+```{r prepare_data, indent = "     "}
+#Data preparation
+shootings_NY_per_boro <- shooting_NY %>% group_by(BORO) %>% summarize(cases = n())
+murders_NY_per_boro <- merge(shooting_NY %>% group_by(BORO, STATISTICAL_MURDER_FLAG) %>% summarize(cases = n()),
+                             shootings_NY_per_boro, by='BORO', all.x = TRUE) 
+murders_NY_per_boro <- murders_NY_per_boro %>% rename(cases = cases.x, total_cases = cases.y)
+murders_NY_per_boro <- murders_NY_per_boro %>% mutate(pct = round(cases / total_cases * 100, 2))
+
+murders_NY_per_boro
+```
+
+```{r echo=FALSE, indent = "     "}
+murders_NY_per_boro %>% ggplot(aes(fill=STATISTICAL_MURDER_FLAG, x=BORO, y=cases)) +
+  geom_bar(position = position_dodge(preserve = 'single'), stat="identity") +
+  theme_minimal() +
+  labs(title='INCIDENTS PER BOROUGHS OF NEW YORK',
+       x='Boroughs of New York',
+       y='Count of cases',
+       fill="Murder")
+```
+<br>
+With this prepared data and the visualization, we can answer that Brooklyn has the most number of shootings. It has 1,892 murder cases.
+
+3. Analysis
+```{r analysis_data, indent = "     "}
+#Perpetrator per race
+shootings_NY_per_perp_race <- shooting_NY %>% group_by(PERP_RACE) %>% summarize(cases = n())
+shootings_NY_perp_race_vic_race <- merge(shooting_NY %>% 
+                                           group_by(PERP_RACE, VIC_RACE) %>% 
+                                           summarize(cases = n()), 
+                                         shootings_NY_per_perp_race, by='PERP_RACE', all.x = TRUE)
+shootings_NY_perp_race_vic_race <- shootings_NY_perp_race_vic_race %>% rename(cases = cases.x, total_cases = cases.y)
+shootings_NY_perp_race_vic_race <- shootings_NY_perp_race_vic_race %>% mutate(pct = round(cases / total_cases * 100, 2))
+#Perpetrator per sex
+shootings_NY_per_perp_sex <- shooting_NY %>% group_by(PERP_SEX) %>% summarize(cases = n())
+shootings_NY_perp_race_vic_sex <- merge(shooting_NY %>% 
+                                           group_by(PERP_SEX, VIC_SEX) %>% 
+                                           summarize(cases = n()), 
+                                         shootings_NY_per_perp_sex, by='PERP_SEX', all.x = TRUE)
+shootings_NY_perp_race_vic_sex <- shootings_NY_perp_race_vic_sex %>% rename(cases = cases.x, total_cases = cases.y)
+shootings_NY_perp_race_vic_sex <- shootings_NY_perp_race_vic_sex %>% mutate(pct = round(cases / total_cases * 100, 2))
+```
+<br>
+Analyzing the shootings per race
+```{r analysis1, indent = "     "}
+shootings_NY_per_perp_race %>% arrange(desc(cases))
+```
+<br>
+```{r echo=FALSE, indent = "     "}
+shootings_NY_per_perp_race %>% ggplot(aes(fill=PERP_RACE, x="", y=cases)) +
+  geom_bar(stat="identity", width=1) +
+  theme_minimal() +
+  theme(axis.ticks = element_blank(),
+        panel.grid  = element_blank()) +
+  coord_polar("y", start=0) +
+  labs(title='Cases per perpetrator race',
+       x = NULL,
+       y = NULL,
+       fill="Race")
+```
+<br>
+<br>
+Looking at the race of perpetrators it is immediately visible that there is a huge proportion of unknown values. The 2nd largest group is black, while the smallest one is American Indian/Alaskan native.
+<br>
+Analyzing the shootings per race perpetrator and victim
+<br>
+<br>
+```{r echo=FALSE, indent = "     "}
+shootings_NY_perp_race_vic_race %>% ggplot(aes(fill=VIC_RACE, x=PERP_RACE, y=cases)) +
+  geom_bar(stat="identity") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle=90, vjust=0.6)) +
+  labs(title='Perpetrator and victim race',
+       x='Perpetrator race',
+       y='Count of cases',
+       fill="Victim race")
+```
+<br>
+Looking at the perpetrator and victim race it is visible that the black race is predominant for being perpetrator and a victim. Also, there is no American Indian/Alaskan native being perpetrator and victim. 
+<br>
+Analyzing the shootings per sex
+```{r analysis2, indent = "     "}
+shootings_NY_perp_race_vic_sex %>% arrange(desc(total_cases), desc(cases))
+```
+<br>
+Looking at the gender is immediately visible that the perpetrator and the victim are males. Very few females are perpetrators attacking another female.
+
+4. Model
+Linear regression is used to estimate the relationships between the number or murders and not murders per boroughs
+```{r modelanaysis, indent = "     "}
+# Create the murders_NY_per_boro_total dataset
+murders_NY_per_boro_Y <- murders_NY_per_boro %>%
+filter(STATISTICAL_MURDER_FLAG==TRUE)
+murders_NY_per_boro_N <- murders_NY_per_boro %>%
+filter(STATISTICAL_MURDER_FLAG==FALSE)
+murders_NY_per_boro_total <- left_join(murders_NY_per_boro_Y,murders_NY_per_boro_N, by='BORO') %>%
+select(-c(STATISTICAL_MURDER_FLAG.x,STATISTICAL_MURDER_FLAG.y,total_cases.y,pct.x,pct.y)) %>%
+rename("cases_murder"="cases.x","cases_no_murder"="cases.y","total_case"="total_cases.x")
+```
+<br>
+```{r model, indent = "     "}
+# Create the Linear regression
+mod <- lm(cases ~ total_cases, data = shootings_NY_perp_race_vic_sex)
+summary(mod)
+```
+<br>
+Look at our model fitted to our data for murder and no murder cases
+```{r echo=FALSE, indent = "     "}
+ggplot(data = murders_NY_per_boro_total, aes(x = cases_murder, y = cases_no_murder)) +
+geom_point() +
+stat_smooth(method = "lm", col = "dodgerblue3") +
+theme(panel.background = element_rect(fill = "white"),
+axis.line.x=element_line(),
+axis.line.y=element_line()) +
+ggtitle("Linear Model Fitted to Data")
+```
+
+## Step 4 - Add Bias Identification
+*Write the conclusion to your project report and include any possible sources of bias.*
+
+In conclusion, this is a challenging data set because of the large number of missing values as well as some incorrect data found on the PER_AGE column. However, the data is very interesting because there are many possible analysis to make according to the questions to solve. For this report, I focused on the boroughs, and perpetrators and its victims per sex and gender. 
+
+After reading and watching some articles about Bronx, I believed that Bronx must have had the most number of incidents. I might make an assumption that the incidents are more likely to occur with women than those of men because I watched shows and ads to stop men killing women on the TV. I mitigated this bias by doing this assignment which uses factual data. 
+
