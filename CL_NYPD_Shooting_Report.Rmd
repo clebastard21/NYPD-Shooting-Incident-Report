@@ -1,5 +1,5 @@
 ---
-title: 'CL Project W3: NYPD Shooting Incident Report'
+title: 'CL Final Project: NYPD Shooting Incident Report'
 author: "Catherine Lebastard"
 date: "9/11/2021"
 output:
@@ -12,11 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## About the data
-List of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year.
-
-This is a breakdown of every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year. This data is manually extracted every quarter and reviewed by the Office of Management Analysis and Planning before being posted on the NYPD website. Each record represents a shooting incident in NYC and includes information about the event, the location and time of occurrence. In addition, information related to suspect and victim demographics is also included. This data can be used by the public to explore the nature of shooting/criminal activity. Please refer to the attached data footnotes for additional information about this dataset.
-
-Data Source: https://catalog.data.gov/dataset 
+The data comes from the City of New York website: https://catalog.data.gov/dataset. The dataset used is "NYPD Shooting Incident Data (History)", and it lists every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year.
 
 ## Step 1 - Import the project dataset
 *Imports the shooting project dataset in a reproducible manner.*
@@ -164,7 +160,7 @@ shootings_NY_perp_race_vic_sex %>% arrange(desc(total_cases), desc(cases))
 Looking at the gender is immediately visible that the perpetrator and the victim are males. Very few females are perpetrators attacking another female.
 
 ### Model
-Linear regression is used to estimate the relationships between the number or murders and not murders per boroughs
+Linear regression is used to estimate the relationships between the number of murders and not murders per boroughs
 ```{r model_anaysis}
 # Create the murders_NY_per_boro_total dataset
 murders_NY_per_boro_Y <- murders_NY_per_boro %>%
@@ -197,7 +193,6 @@ ggtitle("Linear Model Fitted to Data")
 ## Step 4 - Add Bias Identification
 *Write the conclusion to your project report and include any possible sources of bias.*
 
-In conclusion, this is a challenging data set because of the large number of missing values as well as some incorrect data found on the PER_AGE column. However, the data is very interesting because there are many possible analysis to make according to the questions to solve. For this report, I focused on the boroughs, and perpetrators and its victims per sex and gender. 
+In conclusion, Brooklyn is the borough with the highest number of shooting over the years. Also, there is a spike of shooting in the middle of 2020. The number of no murder incidents are higher than the murder incidents. The black race is the dominant one for being the perpetrator and the victim. Moreover, the perpetrator and the victims are males
 
-After reading and watching some articles about Bronx, I believed that Bronx must have had the most number of incidents. I might make an assumption that the incidents are more likely to occur with women than those of men because I watched shows and ads to stop men killing women on the TV. I mitigated this bias by doing this assignment which uses factual data. 
-
+After reading an article about the safest boroughs to live, it was saying that Brooklyn was one of the safest boroughs to live but the NYPD data shows the opposite. I also assumed that the victims are more likely to be women than men because I watched shows and ads to stop men killing women on the TV. I mitigated this bias by doing this assignment which uses factual data.
